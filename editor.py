@@ -2,7 +2,8 @@ import pygame
 import sys
 import json
 
-# TODO adding selection
+# TODO adding selection.
+# TODO allow saving to different paths.
 # constants
 HEIGHT = 800
 WIDTH = 1200
@@ -55,6 +56,7 @@ class textBox(pygame.Rect):
                 self.pred['DetectedText'][:self.cursorPos - 1] + \
                 self.pred['DetectedText'][self.cursorPos:]
             self.cursorPos -= 1
+            self.pred['Confidence'] = -1
     
     def getText(self):
         """returns the text in the textbox.
@@ -76,6 +78,7 @@ class textBox(pygame.Rect):
         self.pred['DetectedText'] \
             = f'{text[:self.cursorPos]}{char}{text[self.cursorPos:]}'
         self.cursorPos += len(char)
+        self.pred['Confidence'] = -1
     
     def getTextToDisplay(self):
         """produces the string to display on the textbox on screen
@@ -176,14 +179,21 @@ def renderTextEditor(surface, predictions, high, font, textBoxEdit):
     for i, pred in enumerate(predictions[high + 1:][:20]):
         text = font.render(pred['DetectedText'][:20], False, (0,0,0))
         surface.blit(text, (0.75 * WIDTH + 10, 0.05 * HEIGHT + 50 + i * 30))
+        
+def savePredictions(data):
+    text = json.dumps(data, indent = 2)
+    file = open("editorSave.json", "w")
+    file.write(text)
+    file.close()
 
-def runPygameUI(imageFname, predictions):
+def runPygameUI(imageFname, data):
     """main pygame loop.
 
     Args:
         imageFname (str): path to image.
         predictions (str): path to Rekognition JSON.
     """
+    predictions = data['TextDetections']
     pygame.init()
     pygame.display.set_caption("editor")
     window = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -233,6 +243,8 @@ def runPygameUI(imageFname, predictions):
                     del predictions[highlight]
                     highlight = max(0, highlight - 1)
                     textBoxEdit.setText(predictions[highlight])
+                elif event.key == pygame.K_RETURN:
+                    savePredictions(data)
                 else:
                     textBoxEdit.addChar(event.unicode)
                 
@@ -245,14 +257,12 @@ def readData(fname):
         fname (str): path to Rekognition JSON file
 
     Returns:
-        tuple: tuple of metadata dict and predictions dict.
+        dict: dict based on JSON file.
     """
     file = open(fname, 'r')
     data = file.read()
     file.close()
-    jsonData = json.loads(data)
-    keys = list(jsonData.keys())
-    return (jsonData[keys[0]], jsonData[keys[1]])
+    return json.loads(data)
 
 def main(imageFname, jsonFname):
     """main method.
@@ -261,8 +271,8 @@ def main(imageFname, jsonFname):
         imageFname (str): path to image.
         jsonFname (str): path to Rekognition data.
     """
-    metadata, predictions = readData(jsonFname)
-    runPygameUI(imageFname, predictions)
+    data = readData(jsonFname)
+    runPygameUI(imageFname, data)
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
