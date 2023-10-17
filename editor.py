@@ -3,12 +3,12 @@ import sys
 import json
 
 # TODO adding selection
-
-HEIGHT, WIDTH = 800, 1200
+# constants
+HEIGHT = 800
+WIDTH = 1200
 
 class textBox(pygame.Rect):
-    """
-    class for creating textbox based on text prediction area.
+    """class for creating textbox based on text prediction area.
     """
     MAX_CHARS = 20
     
@@ -48,6 +48,8 @@ class textBox(pygame.Rect):
             % (len(self.pred['DetectedText']) + 1)
     
     def deleteChar(self):
+        """removes the character immediately before the cursor.
+        """
         if self.cursorPos > 0:
             self.pred['DetectedText'] = \
                 self.pred['DetectedText'][:self.cursorPos - 1] + \
@@ -55,15 +57,32 @@ class textBox(pygame.Rect):
             self.cursorPos -= 1
     
     def getText(self):
+        """returns the text in the textbox.
+
+        Returns:
+            str: text in the text box.
+        """
         return self.pred['DetectedText']
     
     def addChar(self, char):
+        """adds a char to the position immediately after the cursor and
+        increments cursor position.
+
+        Args:
+            char (str): unicode string representing a character or an empty
+            string.
+        """
         text = self.pred['DetectedText']
         self.pred['DetectedText'] \
             = f'{text[:self.cursorPos]}{char}{text[self.cursorPos:]}'
         self.cursorPos += len(char)
     
     def getTextToDisplay(self):
+        """produces the string to display on the textbox on screen
+
+        Returns:
+            str: text to display.
+        """
         beforeChars = self.pred['DetectedText'][:self.cursorPos]
         if (l:=len(beforeChars)) >= textBox.MAX_CHARS:
             return(self.cursorPos - 20, self.cursorPos, \
@@ -72,6 +91,11 @@ class textBox(pygame.Rect):
                 self.pred['DetectedText'][:20])
     
     def display(self, surface):
+        """blit the textbox onto the surface provided.
+
+        Args:
+            surface (pygame.Surface): surface to display the textbox on.
+        """
         pygame.draw.rect(surface, (200, 200, 255), self)
         pygame.draw.rect(surface, (0, 0, 0), self, 2)
         startIndex, endIndex, textToDisplay = self.getTextToDisplay()
@@ -87,6 +111,14 @@ class textBox(pygame.Rect):
 
 
 def makeImage(imageFname):
+    """acquires and resizes the specified image.
+
+    Args:
+        imageFname (str): path to image to display.
+
+    Returns:
+        pygame.Surface: image to display on the screen.
+    """
     image = pygame.image.load(imageFname)
     maxWidth = int(0.6 * WIDTH)
     maxHeight = int(0.7 * HEIGHT)
@@ -99,6 +131,19 @@ def makeImage(imageFname):
     return image
 
 def renderPredictions(surface, predictions, x, y, width, height, font, high):
+    """displays the predicted text bounding boxes on the image.
+
+    Args:
+        surface (pygame.Surface): surface to display predictions on.
+        predictions (list): list of dicts representing text predictions and
+        bounding boxes.
+        x (int): x position of image on surface.
+        y (int): y position of image on surface.
+        width (int): width of image.
+        height (int): height of image.
+        font (pygame.Font): ignore, can be None.
+        high (int): index of highlighted prediction in the list.
+    """
     i = 0
     for pred in predictions:
         # if ' ' in pred['DetectedText']:
@@ -114,6 +159,15 @@ def renderPredictions(surface, predictions, x, y, width, height, font, high):
         i += 1
 
 def renderTextEditor(surface, predictions, high, font, textBoxEdit):
+    """display column of text of predictions.
+
+    Args:
+        surface (pygame.Surface): surface to display predictions on.
+        predictions (list): list of text prediction dicts.
+        high (int): index of highlighted prediction.
+        font (pygame.Font): font to display text predictions in.
+        textBoxEdit (textBox): textBox object where user can edit.
+    """
     background = \
         pygame.Rect(0.75 * WIDTH, 0.05 * HEIGHT, 0.2 * WIDTH, 0.9 * HEIGHT)
     pygame.draw.rect(surface, (200,200,200), background)
@@ -124,6 +178,12 @@ def renderTextEditor(surface, predictions, high, font, textBoxEdit):
         surface.blit(text, (0.75 * WIDTH + 10, 0.05 * HEIGHT + 50 + i * 30))
 
 def runPygameUI(imageFname, predictions):
+    """main pygame loop.
+
+    Args:
+        imageFname (str): path to image.
+        predictions (str): path to Rekognition JSON.
+    """
     pygame.init()
     pygame.display.set_caption("editor")
     window = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -179,6 +239,14 @@ def runPygameUI(imageFname, predictions):
         pygame.display.update()
 
 def readData(fname):
+    """reads Rekognition formatted JSON into dict
+
+    Args:
+        fname (str): path to Rekognition JSON file
+
+    Returns:
+        tuple: tuple of metadata dict and predictions dict.
+    """
     file = open(fname, 'r')
     data = file.read()
     file.close()
@@ -187,6 +255,12 @@ def readData(fname):
     return (jsonData[keys[0]], jsonData[keys[1]])
 
 def main(imageFname, jsonFname):
+    """main method.
+
+    Args:
+        imageFname (str): path to image.
+        jsonFname (str): path to Rekognition data.
+    """
     metadata, predictions = readData(jsonFname)
     runPygameUI(imageFname, predictions)
 
